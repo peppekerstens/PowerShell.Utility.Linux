@@ -90,8 +90,8 @@ function Out-Gridview{
         Free to use under GNU v3 Public License (https://choosealicense.com/licenses/gpl-3.0/)
 
         Author: Peppe Kerstens (NLD)
-        Version: 1.0.0
-        Date: 6-6-2023
+        Version: 1.1.0
+        Date: 15-7-2025
         
     .LINK
         https://devblogs.microsoft.com/scripting/proxy-functions-spice-up-your-powershell-core-cmdlets/
