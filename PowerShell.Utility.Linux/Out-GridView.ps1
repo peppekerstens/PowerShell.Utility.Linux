@@ -57,7 +57,7 @@ function Set-ConsoleGuiTools{
     .Notes
         Free to use under GNU v3 Public License (https://choosealicense.com/licenses/gpl-3.0/)
     #>
-    if (Test-ConsoleGuiTools -eq $false){
+    if ((Test-ConsoleGuiTools) -eq $false){
         try{
             install-module microsoft.powershell.consoleguitools -Repository PSGallery -Force
             import-module microsoft.powershell.consoleguitools -PassThru
