@@ -31,7 +31,41 @@ function Get-OutGridviewSettings{
     return $OutGridviewSettings
 }
 
+function Test-ConsoleGuiTools{
+    <#
+    .Synopsis
+        Tests if the consoleguitools module is available.
+    .Description
+        This function checks if the consoleguitools module is available. If it is not, it returns false.
+    .Notes
+        Free to use under GNU v3 Public License (https://choosealicense.com/licenses/gpl-3.0/)
+    #>
+    $consoleguitools = Get-Module microsoft.powershell.consoleguitools -listavailable
+    if ($consoleguitools){
+        return $true
+    }else{
+        return $false
+    }
+}
 
+function Set-ConsoleGuiTools{
+    <#
+    .Synopsis
+        Checks if the consoleguitools module is available and installs it if not.
+    .Description
+        This function checks if the consoleguitools module is available. If it is not, it attempts to install it from the PSGallery.
+    .Notes
+        Free to use under GNU v3 Public License (https://choosealicense.com/licenses/gpl-3.0/)
+    #>
+    if (Test-ConsoleGuiTools -eq $false){
+        try{
+            install-module microsoft.powershell.consoleguitools -Repository PSGallery -Force
+            import-module microsoft.powershell.consoleguitools -PassThru
+        }catch{
+            Write-Warning -Message "Out-Gridview proxy function was not able to load consoleguitools, reverting to default display"
+        }
+    }
+}
 
 function Out-Gridview{
     <#
@@ -82,11 +116,7 @@ function Out-Gridview{
 
         [Parameter(ParameterSetName='PassThru')]
         [switch]
-        ${PassThru}#,
-
-        #[ValidateSet("Console","Gui")]
-        #[string]
-        #${ViewDefault}
+        ${PassThru}
     )
 
     DynamicParam {
@@ -101,49 +131,38 @@ function Out-Gridview{
 
     begin
     {
+        #default behavior, we can not use the consoleguitools module
+        $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Microsoft.PowerShell.Utility\Out-GridView', [System.Management.Automation.CommandTypes]::Cmdlet)
+
         #check which PS version this is run on
         if ($PSVersionTable.PSVersion -ge [system.version]::Parse("7.2.0")){
             #if PS version is 7.2 or higher, we can use the consoleguitools module
+            Set-ConsoleGuiTools
+
             if ($IsLinux -eq $true){
                 #if this is run on Linux, force Out-ConsoleGridView
                 $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('microsoft.powershell.consoleguitools\Out-ConsoleGridView', [System.Management.Automation.CommandTypes]::Cmdlet)
             }
             if ($IsWindows -eq $true){
-                #if this is run on Windows, invoke the configuration setting 
-                Try{
-                    $null = Get-Variable -Name 'OutGridviewSettings' -ErrorAction stop 
-                }Catch{
-                    $OutGridviewSettings = Get-OutGridviewSettings
-                    Set-Variable -Name 'OutGridviewSettings' -Value $OutGridviewSettings -Scope Global -Force
-                }
-
                 if ($PSBoundParameters.ContainsKey('ViewDefault')){
                     $OutGridviewSettings = [PSCustomObject]@{
                         ViewDefault = $PSBoundParameters['ViewDefault']
                     }
                     $OutGridviewSettings | ConvertTo-Json | Set-Content -Path "$($env:USERPROFILE)\.out-gridview.settings" -Force
-                    Set-Variable -Name 'OutGridviewSettings' -Value $OutGridviewSettings -Scope Global -Force
+                }else{
+                    #if the ViewDefault parameter is not set, check if the global variable OutGridviewSettings exists
+                    Try{
+                        $OutGridviewSettings = Get-Variable -Name 'OutGridviewSettings' -ErrorAction Stop 
+                    }Catch{
+                        #if it does not exist, get the settings from the file
+                        $OutGridviewSettings = Get-OutGridviewSettings
+                    }
                 }
-
-                $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Microsoft.PowerShell.Utility\Out-GridView', [System.Management.Automation.CommandTypes]::Cmdlet)
+                Set-Variable -Name 'OutGridviewSettings' -Value $OutGridviewSettings -Scope Global -Force
                 if ($OutGridviewSettings.ViewDefault -eq 'Console'){
-                    $consoleguitools = Get-Module microsoft.powershell.consoleguitools -listavailable
-                    if (!($consoleguitools)){
-                        try{
-                            install-module microsoft.powershell.consoleguitools -Repository PSGallery -Force
-                            $consoleguitools = import-module microsoft.powershell.consoleguitools -PassThru
-                        }catch{
-                            Write-Warning -Message "Out-Gridview proxy function was not able to load consoleguitools, reverting to default display"
-                        }
-                    }
-                    if ($consoleguitools){
-                        $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('microsoft.powershell.consoleguitools\Out-ConsoleGridView', [System.Management.Automation.CommandTypes]::Cmdlet)
-                    }
+                    $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('microsoft.powershell.consoleguitools\Out-ConsoleGridView', [System.Management.Automation.CommandTypes]::Cmdlet)
                 }
             }
-        }else{
-            #if PS version is lower than 7.2, we can not use the consoleguitools module
-            $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Microsoft.PowerShell.Utility\Out-GridView', [System.Management.Automation.CommandTypes]::Cmdlet)
         }
 
         $null = $PSBoundParameters.Remove('ViewDefault')
