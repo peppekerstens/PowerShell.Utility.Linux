@@ -25,6 +25,7 @@ function ConvertFrom-SddlString {
         [string]$Sddl
     )
 
+    process {
     if (-not $IsLinux) {
         Microsoft.PowerShell.Utility\ConvertFrom-SddlString -Sddl $Sddl
         return
@@ -39,4 +40,5 @@ function ConvertFrom-SddlString {
         DiscretionaryAcl         = @()
         SystemAcl                = @()
     }
+    } # end process
 }
