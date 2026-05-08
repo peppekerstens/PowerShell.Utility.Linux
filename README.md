@@ -60,7 +60,7 @@ Legend: ✅ Implemented &nbsp;|&nbsp; ⚠️ Stub &nbsp;|&nbsp; ➖ N/A on Linux
 | `Out-GridView` | ✅ | `Microsoft.PowerShell.ConsoleGuiTools` (`Out-ConsoleGridView`) | Full TUI grid; `-OutputMode`, `-PassThru`, `-Title` supported |
 | `Out-Printer` | ✅ | `lp` (CUPS) via temp file | `-Name` selects printer; checks `lp` availability |
 | `Show-Command` | ✅ | `Out-ConsoleGridView` for command/parameter-set selection | Parameter metadata displayed; value entry not supported (ConsoleGuiTools limitation) |
-| `ConvertFrom-SddlString` | ✅ | Pure PowerShell — no Windows API required | Full cross-platform implementation |
+| `ConvertFrom-SddlString` | ⚠️ | Stub — SDDL is Windows-specific | Emits a warning on Linux; returns object with `RawDescriptor` |
 
 ### Not included (already work in PS7 on Linux)
 
@@ -80,6 +80,7 @@ All other `Microsoft.PowerShell.Utility` cmdlets (`Export-Csv`, `ConvertTo-Json`
 
 | Version | Notes |
 |---|---|
+| 0.4.0 | Fix `psm1` loading test files (replaced `-Exclude` with `Where-Object`). Fix `ConvertFrom-SddlString`: now a Linux-aware stub (emits warning, returns `RawDescriptor`). Add `Examples\` folder: 4 scripts + `Examples.Tests.ps1` (20 tests pass WSL2). |
 | 0.3.0 | `Out-Printer`: full Linux implementation via `lp`/CUPS. `Show-Command`: TUI implementation via `Out-ConsoleGridView` on Linux, Windows fallback retained. Module manifest (`.psd1`) and root module (`.psm1`) added. |
 | 0.2.0 | `Out-GridView`: cross-platform implementation via `Out-ConsoleGridView`. |
 | 0.1.0 | Initial scaffolding. |
