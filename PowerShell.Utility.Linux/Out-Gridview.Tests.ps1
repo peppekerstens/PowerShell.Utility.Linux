@@ -44,7 +44,7 @@ Describe 'Out-Gridview.ps1' {
         }
     }
 
-    Context 'Out-Gridview' {
+    Context 'Out-Gridview' -Skip:([Console]::IsInputRedirected) {
         It 'Sets ViewDefault and saves settings' {
             Mock Set-Content {}
             $params = @{ ViewDefault = 'Console' }
