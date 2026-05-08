@@ -1,102 +1,91 @@
 # PowerShell.Utility.Linux
 
-PowerShell module for Linux aiming cmdlet to represent missing commands from Microsoft.PowerShell.Utility
+PowerShell 7.x module providing cmdlet parity with `Microsoft.PowerShell.Utility` on Linux. Implements the four cmdlets that are present on Windows but missing from the Linux build of PowerShell 7.
 
-This is work in progress. More information can be found [here](https://peppekerstens.github.io/linux-command-wrapping-part-1/)
+Part of the **Linux PowerShell Cmdlet Parity** project — inspired by Evgenij Smirnov's [2025 European PowerShell Summit session](https://www.youtube.com/watch?v=RlzinWYIjBY) and documented in the blog series at [peppekerstens.github.io](https://peppekerstens.github.io/linux-command-wrapping-part-1/).
 
-## Context
+---
 
-Some metadata for context and reference:
+## What it does
 
-```powershell
-#linux box
-$psversionTable
+On **Linux**, provides fully functional replacements using `Microsoft.PowerShell.ConsoleGuiTools` (TUI) and native Linux tools (`lp`/CUPS).
 
-Name                           Value
-----                           -----
-PSVersion                      7.5.1
-PSEdition                      Core
-GitCommitId                    7.5.1
-OS                             Ubuntu 24.04.2 LTS
-Platform                       Unix
-PSCompatibleVersions           {1.0, 2.0, 3.0, 4.0…}
-PSRemotingProtocolVersion      2.3
-SerializationVersion           1.1.0.1
-WSManStackVersion              3.0
+On **Windows**, every function delegates transparently to the built-in `Microsoft.PowerShell.Utility` cmdlet — no behavioral change.
 
-get-module  microsoft.powershell.utility -listavailable
+---
 
-    Directory: /opt/microsoft/powershell/7/Modules
+## Requirements
 
-ModuleType Version    PreRelease Name                                PSEdition ExportedCommands
----------- -------    ---------- ----                                --------- ----------------
-Manifest   7.0.0.0               Microsoft.PowerShell.Utility        Core      {Export-Alias, Get-Alias, Impor…
-```
+- PowerShell 7.2+
+- Linux: CUPS (`lp`) for `Out-Printer`; `Microsoft.PowerShell.ConsoleGuiTools` for `Out-GridView` and `Show-Command` (auto-installed on first use if missing)
 
+---
+
+## Installation
 
 ```powershell
-#windows box
-$PSversionTable
-
-Name                           Value
-----                           -----
-PSVersion                      7.5.1
-PSEdition                      Core
-GitCommitId                    7.5.1
-OS                             Microsoft Windows 10.0.26100
-Platform                       Win32NT
-PSCompatibleVersions           {1.0, 2.0, 3.0, 4.0…}
-PSRemotingProtocolVersion      2.3
-SerializationVersion           1.1.0.1
-WSManStackVersion              3.0
-
-get-module  microsoft.powershell.utility -listavailable
-
-    Directory: C:\program files\powershell\7\Modules
-
-ModuleType Version    PreRelease Name                                PSEdition ExportedCommands
----------- -------    ---------- ----                                --------- ----------------
-Manifest   7.0.0.0               Microsoft.PowerShell.Utility        Core      {Export-Alias, Get-Alias, Import-Alias,…
+# Clone or copy the module folder to a PSModulePath location, then:
+Import-Module PowerShell.Utility.Linux
 ```
 
-## Missing commands
+---
 
-After installing PowerShell on Linux, the Microsoft.PowerShell.Utility does exist. However, not all cmdlets, present in Windows are there.
+## Usage
 
 ```powershell
-#linux box
-Get-Command -module  microsoft.powershell.utility | Select name | Export-Csv ./utility-linux.csv
+# Interactive grid view (replaces Out-GridView on Linux)
+Get-Process | Out-GridView
+
+# Select a single item and return it
+$proc = Get-Process | Out-GridView -OutputMode Single -PassThru
+
+# Print a file
+Get-Content report.txt | Out-Printer
+
+# Browse available commands interactively
+Show-Command
+
+# Convert an SDDL string to a readable object
+ConvertFrom-SddlString 'O:BAG:SYD:...'
 ```
 
-```powershell
-#windows box
-Get-Command -module  microsoft.powershell.utility | Select name | Export-Csv ./utility-windows.csv
-```
+---
 
-```powershell
-#comparing
+## Cmdlet Status
 
-$tuxutil = import-csv ./utility-linux.csv
-$winutil = import-csv ./utility-windows.csv
+Legend: ✅ Implemented &nbsp;|&nbsp; ⚠️ Stub &nbsp;|&nbsp; ➖ N/A on Linux
 
-compare-object -ReferenceObject $winutil -DifferenceObject $tuxutil -property name
+| Cmdlet | Status | Linux implementation | Notes |
+|---|:---:|---|---|
+| `Out-GridView` | ✅ | `Microsoft.PowerShell.ConsoleGuiTools` (`Out-ConsoleGridView`) | Full TUI grid; `-OutputMode`, `-PassThru`, `-Title` supported |
+| `Out-Printer` | ✅ | `lp` (CUPS) via temp file | `-Name` selects printer; checks `lp` availability |
+| `Show-Command` | ✅ | `Out-ConsoleGridView` for command/parameter-set selection | Parameter metadata displayed; value entry not supported (ConsoleGuiTools limitation) |
+| `ConvertFrom-SddlString` | ✅ | Pure PowerShell — no Windows API required | Full cross-platform implementation |
 
-name                   SideIndicator
-----                   -------------
-ConvertFrom-SddlString =>
-Out-GridView           =>
-Out-Printer            =>
-Show-Command           =>
-```
+### Not included (already work in PS7 on Linux)
 
-## Populating
+All other `Microsoft.PowerShell.Utility` cmdlets (`Export-Csv`, `ConvertTo-Json`, `Select-Object`, `Sort-Object`, etc.) work natively in PowerShell 7 on Linux — no wrapping needed.
 
-First the module has been populated via the helper function initialise-module in [helper.ps1](./Helpers/helper.ps1). These create proxy functions like so:
+---
 
-```powershell
-#windows box
-. ./helpers/helper.ps1
-Initialize-Module -Module Microsoft.PowerShell.Utility -Path ./PowerShell.Utility.Linux
-```
+## Implementation notes
 
-Then every command, which is not in the list above, was manually deleted. 
+- `ConsoleGuiTools` is installed on demand inside `Out-GridView` and `Show-Command` to avoid hard dependency errors on platforms where the module is not present.
+- `Out-ConsoleGridView` does not support editable cells — full parameter value-entry for `Show-Command` would require a custom TUI form (e.g. via PSTuiTools, which uses Terminal.Gui v1.19). This is noted as a future enhancement.
+- `Out-Printer` writes pipeline input to a temp file and passes it to `lp`. The temp file is cleaned up after printing.
+
+---
+
+## Version history
+
+| Version | Notes |
+|---|---|
+| 0.3.0 | `Out-Printer`: full Linux implementation via `lp`/CUPS. `Show-Command`: TUI implementation via `Out-ConsoleGridView` on Linux, Windows fallback retained. Module manifest (`.psd1`) and root module (`.psm1`) added. |
+| 0.2.0 | `Out-GridView`: cross-platform implementation via `Out-ConsoleGridView`. |
+| 0.1.0 | Initial scaffolding. |
+
+---
+
+## License
+
+GPL-3.0 — see [LICENSE](LICENSE).
