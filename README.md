@@ -1,5 +1,7 @@
 # PowerShell.Utility.Linux
 
+[![Pester Tests](https://github.com/peppekerstens/PowerShell.Utility.Linux/actions/workflows/pester.yml/badge.svg)](https://github.com/peppekerstens/PowerShell.Utility.Linux/actions/workflows/pester.yml)
+
 PowerShell 7.x module providing cmdlet parity with `Microsoft.PowerShell.Utility` on Linux. Implements the four cmdlets that are present on Windows but missing from the Linux build of PowerShell 7.
 
 Part of the **Linux PowerShell Cmdlet Parity** project — inspired by Evgenij Smirnov's [2025 European PowerShell Summit session](https://www.youtube.com/watch?v=RlzinWYIjBY) and documented in the blog series at [peppekerstens.github.io](https://peppekerstens.github.io/linux-command-wrapping-part-1/).
@@ -74,6 +76,28 @@ All other `Microsoft.PowerShell.Utility` cmdlets (`Export-Csv`, `ConvertTo-Json`
 - `Out-ConsoleGridView` does not support editable cells — full parameter value-entry for `Show-Command` would require a custom TUI form (e.g. via PSTuiTools, which uses Terminal.Gui v1.19). This is noted as a future enhancement.
 - `Out-Printer` writes pipeline input to a temp file and passes it to `lp`. The temp file is cleaned up after printing.
 
+---
+
+## CI / Testing
+
+Tested across 5 Linux distributions in containers:
+
+| Distro | Image |
+|---|---|
+| Ubuntu 24.04 | `ghcr.io/peppekerstens/testinfra:ubuntu-24.04` |
+| Debian 12 | `ghcr.io/peppekerstens/testinfra:debian-12` |
+| Fedora 40 | `ghcr.io/peppekerstens/testinfra:fedora-40` |
+| openSUSE Tumbleweed | `ghcr.io/peppekerstens/testinfra:opensuse-tumbleweed` |
+| Arch Linux | `ghcr.io/peppekerstens/testinfra:arch-latest` |
+
+Run locally with:
+
+```powershell
+# From the repo root
+docker compose -f docker-compose.test.yml up --abort-on-container-exit
+```
+
+GitHub Actions runs the same matrix on every push — see `.github/workflows/pester.yml`.
 ---
 
 ## Version history
